@@ -1,0 +1,39 @@
+#!/bin/bash
+
+generate(){
+
+  local SRCDIR=src
+  local OUTDIR=out.temp
+
+  redo-ifchange "$SRCDIR.srclist"
+  
+  while read f; do
+    printf "%s.src\0" "$f"
+  done <"$SRCDIR.srclist" | xargs -0 redo-ifchange
+  
+  list="$(
+    while read f; do
+      while read f2; do
+        printf "%s/%s\n" "${f%/*}" "$f2"
+      done <"$f.src"
+    done <"$SRCDIR.srclist")"
+  
+  echo "$list" | while read f; do
+    printf "%s.out\0%s.dest\0" "$f" "$f"
+  done | xargs -0 redo-ifchange
+
+  echo "$list" | while read f; do
+    fdir="${f%/*}"
+    if [ -s "$f.dest" ]; then
+      outfile="$OUTDIR/${fdir#$SRCDIR}$(cat $f.dest)"
+      mkdir -p "${outfile%/*}"
+      cp --reflink -a "$f.out" "$outfile"
+    fi
+  done
+
+}
+
+dofile="$1"
+shift
+source "$dofile"
+

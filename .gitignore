@@ -1,0 +1,5 @@
+*~
+out/
+.redo/
+/src.srclist
+/node_modules/
