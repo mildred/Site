@@ -7,9 +7,7 @@ generate(){
 
   redo-ifchange "$SRCDIR.srclist"
   
-  while read f; do
-    printf "%s.src\0" "$f"
-  done <"$SRCDIR.srclist" | xargs -0 redo-ifchange
+  tr '\n' '\0' <"$SRCDIR.srclist" | xargs -0 -n 1 printf "%s.src\0" | xargs -0 redo-ifchange
   
   list="$(
     while read f; do
@@ -17,9 +15,13 @@ generate(){
         printf "%s/%s\n" "${f%/*}" "$f2"
       done <"$f.src"
     done <"$SRCDIR.srclist")"
-  
+    
+  echo "$list" | tr '\n' '\0' | xargs -0 -n 1 printf "%s.dest\0" | xargs -0 redo-ifchange  
+
   echo "$list" | while read f; do
-    printf "%s.out\0%s.dest\0" "$f" "$f"
+    if [ -s "$f.dest" ]; then
+      printf "%s\0" "$f.out"
+    fi
   done | xargs -0 redo-ifchange
 
   echo "$list" | while read f; do
