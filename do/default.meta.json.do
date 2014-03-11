@@ -3,6 +3,8 @@ JSESC=../node_modules/jsesc/bin/jsesc
 YAML2JSON=../node_modules/js-yaml-cli/bin/yaml2json.js
 JSONTOOL=../node_modules/jsontool/lib/jsontool.js
 
+redo-ifchange "$2"
+
 (
 
   if meta="$($YAML2JSON <"$2")" 2>/dev/null; then
@@ -47,5 +49,3 @@ EOF
 
 ) | $JSONTOOL --merge >"$3"
 
-redo-always
-redo-stamp <"$3"
