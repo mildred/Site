@@ -10,7 +10,6 @@ generate(){
   tr '\n' '\0' <"$SRCDIR.srclist" | xargs -0 -n 1 printf "%s.src\0" | xargs -0 redo-ifchange
   
   read_src_file(){
-    echo read_src_file "$1" >&2
     local srcfile="$1"
     local d="${srcfile%/*}"
 
