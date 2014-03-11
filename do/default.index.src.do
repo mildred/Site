@@ -72,6 +72,7 @@ echo "$basefile2.index" >>"$3"
 let i=1 j=$numitems pagenum=1
 while list="$(echo "$sorted_list_asc" | sed -n "${i},${j}p")"; [ -n "$list" ]; do
   echo "$list" | generate $pagenum >"$outdir/$basefile2.$pagenum.index.list"
+  : >"$outdir/$basefile2.$pagenum.index.src"
   echo "$basefile2.$pagenum.index" >>"$3"
   let i+=$numitems j+=$numitems pagenum+=1
 done

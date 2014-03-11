@@ -9,11 +9,23 @@ generate(){
   
   tr '\n' '\0' <"$SRCDIR.srclist" | xargs -0 -n 1 printf "%s.src\0" | xargs -0 redo-ifchange
   
+  read_src_file(){
+    echo read_src_file "$1" >&2
+    local srcfile="$1"
+    local d="${srcfile%/*}"
+
+    tr '\n' '\0' <"$srcfile" | xargs -0 -n 1 printf "%s/%s.src\0" "$d" | xargs -0 redo-ifchange
+    while read f2; do
+      printf "%s/%s\n" "$d" "$f2"
+      if [ "a$d/$f2.src" != "a$srcfile" ]; then
+        read_src_file "$d/$f2.src"
+      fi
+    done <"$srcfile"
+  }
+  
   list="$(
     while read f; do
-      while read f2; do
-        printf "%s/%s\n" "${f%/*}" "$f2"
-      done <"$f.src"
+      read_src_file "$f.src"
     done <"$SRCDIR.srclist")"
     
   echo "$list" | tr '\n' '\0' | xargs -0 -n 1 printf "%s.dest\0" | xargs -0 redo-ifchange  
