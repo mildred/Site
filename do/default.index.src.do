@@ -37,6 +37,7 @@ list="$(
     [ "a$2.index" = "a$srcdir/$f" ] && continue
     redo-ifchange "$srcdir/$f.dest"
     [ -s "$srcdir/$f.dest" ] || continue
+    redo-dofile "$srcdir/$f.htm" >/dev/null || continue
     printf '%s\n' "$f"
   done <"$filelist")"
 
