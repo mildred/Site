@@ -17,6 +17,11 @@ fi
 filelistdir="${filelist%/*}"
 filelist="${2%/*}/$relfilelist"
 
+template="$($JSONTOOL template <"$2.tags.meta.json")"
+if [ -z "$template" ]; then
+  template=index.jade
+fi
+
 tagattr="$($JSONTOOL tags <"$2.tags.meta.json")"
 if [ -z "$tagattr" ]; then
   tagattr=tags
@@ -50,9 +55,10 @@ echo "$tag_list" | while read tag; do
     (
       cat "$2.tags" | $YAML2JSON 
       filter="(this.meta.tags || []).indexOf($(echo "$tag" | $JSESC --json))>=0"
-      printf "{\"filelist\": %s, \"filter\": %s}" \
+      printf "{\"filelist\": %s, \"filter\": %s, \"template\": %s}" \
         "$(echo "../../$relfilelist" | $JSESC --json)" \
-        "$(echo "$filter" | $JSESC --json)"
+        "$(echo "$filter" | $JSESC --json)" \
+        "$(echo "../../$template" | $JSESC --json)"
     ) | $JSONTOOL -a --merge
   ) >"$outdir/$basefile2/$tag/index.index"
 done
