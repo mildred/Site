@@ -30,6 +30,7 @@ filelist="$($JSONTOOL filelist <"$2.index.meta.json")"
 if [ -z "$filelist" ]; then
   filelist=..srclist
 fi
+filelistdir="$(dirname "$filelist")"
 filelist="${2%/*}/$filelist"
 
 redo-ifchange "$filelist"
@@ -39,14 +40,14 @@ redo-ifchange "$template"
 
 list="$(
   while read f; do
-    [ "a$2.index" = "a$srcdir/$f" ] && continue
-    redo-ifchange "$srcdir/$f.dest"
-    [ -s "$srcdir/$f.dest" ] || continue
-    redo-dofile "$srcdir/$f.htm" >/dev/null || continue
+    [ "a$2.index" = "a$filelistdir/$f" ] && continue
+    redo-ifchange "$srcdir/$filelistdir/$f.dest"
+    [ -s "$srcdir/$filelistdir/$f.dest" ] || continue
+    redo-dofile "$srcdir/$filelistdir/$f.htm" >/dev/null || continue
     printf '%s\n' "$f"
   done <"$filelist")"
 
-echo "$list" | tr '\n' '\0' | xargs -0 -n 1 printf "%s/%s.meta.json\0" "$srcdir" | xargs -0 redo-ifchange
+echo "$list" | tr '\n' '\0' | xargs -0 -n 1 printf "%s/%s.meta.json\0" "$srcdir/$filelistdir" | xargs -0 redo-ifchange
 
 sortable_list="$(
   (
@@ -56,13 +57,16 @@ sortable_list="$(
       echo "$sep"
       echo "{\"file\": $($JSESC --json <<<"$f"),"
       echo " \"meta\":"
-      cat "$srcdir/$f.meta.json"
+      if [ -s "$srcdir/$filelistdir/$f.meta.json" ]; then
+        cat "$srcdir/$filelistdir/$f.meta.json"
+      else
+        echo "{}"
+      fi
       echo "}"
       sep=","
     done
     echo "]"
   ) | $JSONTOOL -C "$filter" | $JSONTOOL -a meta.timestamp_modified meta.timestamp_created file)"
-# (this.meta.tags || []).indexOf("even")>=0
 
 sorted_list_asc="$(echo "$sortable_list" | sort -n | cut -d' ' -f3-)"
 sorted_list_desc="$(echo "$sortable_list" | sort -n -r | cut -d' ' -f3-)"
@@ -75,7 +79,7 @@ generate(){
   echo "  \"items\": ["
   separator=""
   while read f; do
-    printf "$separator    %s" "$(echo "$f" | $JSESC --json)"
+    printf "$separator    %s" "$(echo "$filelistdir/$f" | $JSESC --json)"
     separator=",\n"
   done
   printf "\n  ]"

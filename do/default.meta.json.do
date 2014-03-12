@@ -7,7 +7,8 @@ redo-ifchange "$2"
 
 (
 
-  if meta="$($YAML2JSON <"$2")" 2>/dev/null; then
+  read first_line <"$2"
+  if [ "a$first_line" = "a---" ] && meta="$( (cat "$2"; echo ---) | $YAML2JSON)" 2>/dev/null; then
     echo "$meta" | $JSONTOOL [0]
   fi
 
@@ -35,9 +36,9 @@ redo-ifchange "$2"
     cat <<EOF
 {
   "date_created":       $($JSESC --json <<<"$first_commit_date"),
-  "timestamp_created":  $($JSESC --json <<<"$first_commit_stamp"),
+  "timestamp_created":  $first_commit_stamp,
   "date_modified":      $($JSESC --json <<<"$last_commit_date"),
-  "timestamp_modified": $($JSESC --json <<<"$last_commit_stamp"),
+  "timestamp_modified": $last_commit_stamp,
   "creator":            $($JSESC --json <<<"$first_commit_name"),
   "creator_email":      $($JSESC --json <<<"$first_commit_mail"),
   "last_editor":        $($JSESC --json <<<"$last_commit_name"),
