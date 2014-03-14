@@ -3,6 +3,7 @@
     "jade": "*",
     "jsesc": "*",
     "jsontool": "*",
-    "js-yaml-cli": "*"
+    "js-yaml-cli": "*",
+    "jsdom": "*"
   }
 }
