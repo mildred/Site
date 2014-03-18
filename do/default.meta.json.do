@@ -5,16 +5,18 @@ JSONTOOL=../node_modules/jsontool/lib/jsontool.js
 
 redo-ifchange "$2"
 
-(
+[ -f "$2" ] || exit 1
 
-  read first_line <"$2"
-  if [ "a$first_line" = "a---" ] && meta="$( (cat "$2"; echo ---) | $YAML2JSON)" 2>/dev/null; then
+(
+  read first_line <"$2" || exit 1
+  if [ "a$first_line" = "a---" ] && meta="$(sed -n -e '1 p; 2,/^---$/ p' "$2" | $YAML2JSON)" 2>/dev/null; then
     echo "$meta" | $JSONTOOL [0]
   fi
 
-  (
-    git log --pretty=format:'%H%n%an%n%ae%n%ai%n%at%n' -1 -- "$2"
-    git log --pretty=format:'%H%n%an%n%ae%n%ai%n%at%n' --follow -- "$2" | tail -n 5
+  ( cd "$(dirname "$2")"
+    f="$(basename "$2")"
+    git log --pretty=format:'%H%n%an%n%ae%n%ai%n%at%n' -1 -- "$f"
+    git log --pretty=format:'%H%n%an%n%ae%n%ai%n%at%n' --follow -- "$f" | tail -n 5
   ) | (
     read last_commit_id
     read last_commit_name

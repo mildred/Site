@@ -47,7 +47,9 @@ list="$(
     printf '%s\n' "$f"
   done <"$filelist")"
 
-echo "$list" | tr '\n' '\0' | xargs -0 -n 1 printf "%s/%s.meta.json\0" "$srcdir/$filelistdir" | xargs -0 redo-ifchange
+if [ -n "$list" ]; then
+  echo "$list" | tr '\n' '\0' | xargs -0 -n 1 printf "%s/%s.meta.json\0" "$srcdir/$filelistdir" | xargs -0 redo-ifchange
+fi
 
 sortable_list="$(
   (
@@ -76,9 +78,11 @@ generate(){
   echo "{"
   echo "  \"pagenum\":  $([ -n "$1" ] && echo "$1" || echo null),"
   echo "  \"template\": $($JSESC --json <<<"${template:$srcdirlen}"),"
+  echo "  \"metafile\": $($JSESC --json <<<"$basefile2.index.meta.json"),"
   echo "  \"items\": ["
   separator=""
   while read f; do
+    [ -z "$f" ] && continue
     printf "$separator    %s" "$(echo "$filelistdir/$f" | $JSESC --json)"
     separator=",\n"
   done

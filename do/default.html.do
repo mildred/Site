@@ -15,9 +15,9 @@ template="${2%/*}/$template"
 redo-ifchange "$template"
 redo-ifchange "$2.htm"
 
-args="{
-  'file_meta': $(cat "$2.meta.json"),
-  'file_html': $($JSESC --json <"$2.htm")
-}"
+args="{ 'file': {
+  'meta': $(cat "$2.meta.json"),
+  'html': $($JSESC --json <"$2.htm")
+}}"
 
 $JADE -O "$args" <"$template" >"$3"

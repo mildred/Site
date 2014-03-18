@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-var arg1 = "../";
+var arg1 = process.argv[2];
 var input = "<toto><a href='titi'>link1</a><a href='tutu'>link2</a></toto>";
 
 var jsdom = require("jsdom").jsdom;
@@ -18,7 +18,7 @@ function fixURLs(doc, tagName, attributeName, callback) {
 
 function makeCallbackPrefixURL(prefix) {
   return function(url) {
-    return prefix + url;
+    return url.resolve(prefix, url);
   };
 }
 

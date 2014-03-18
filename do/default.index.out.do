@@ -7,10 +7,13 @@ srcdir="${1%/*}"
 
 redo-ifchange "$2.index.list"
 template="$($JSONTOOL template <"$2.index.list")"
-redo-ifchange "$srcdir/$template"
+metafile="$($JSONTOOL metafile <"$2.index.list")"
+redo-ifchange "$srcdir/$template" "$srcdir/$metafile"
 
 args="$(
-  echo "{ 'files': ["
+  echo "{ 'file': {'html': null, 'meta': "
+  cat "$srcdir/$metafile"
+  echo "}, 'pagenum': $($JSONTOOL pagenum <"$2.index.list"), 'files': ["
   i=0
   count="$($JSONTOOL items.length <"$2.index.list")"
   while [ $i -lt $count ]; do

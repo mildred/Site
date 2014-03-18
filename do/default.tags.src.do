@@ -39,15 +39,22 @@ tag_list="$(
       echo "$sep"
       echo "{\"file\": $($JSESC --json <<<"$f"),"
       echo " \"meta\":"
-      cat "$srcdir/$filelistdir/$f.meta.json"
+      if [ -s "$srcdir/$filelistdir/$f.meta.json" ]; then
+        cat "$srcdir/$filelistdir/$f.meta.json"
+      else
+        echo null
+      fi
       echo "}"
       sep=","
     done <"$filelist"
     echo "]"
-  ) | $JSONTOOL -a meta.$tagattr | $JSONTOOL -g -a | sort | uniq
+  ) | $JSONTOOL -a "(meta || {}).$tagattr" | $JSONTOOL -g -a | sort | uniq
 )"
 
+:>"$3"
+
 echo "$tag_list" | while read tag; do
+  [ -z "$tag" ] && continue
   echo "$basefile2/$tag/index.index" >>"$3"
   mkdir -p "$outdir/$basefile2/$tag"
   (
@@ -55,7 +62,7 @@ echo "$tag_list" | while read tag; do
     (
       cat "$2.tags" | $YAML2JSON 
       filter="(this.meta.tags || []).indexOf($(echo "$tag" | $JSESC --json))>=0"
-      printf "{\"filelist\": %s, \"filter\": %s, \"template\": %s}" \
+      printf "\n{\"filelist\": %s, \"filter\": %s, \"template\": %s}\n" \
         "$(echo "../../$relfilelist" | $JSESC --json)" \
         "$(echo "$filter" | $JSESC --json)" \
         "$(echo "../../$template" | $JSESC --json)"
