@@ -13,11 +13,13 @@ redo-ifchange "$2"
     echo "$meta" | $JSONTOOL [0]
   fi
 
-  ( cd "$(dirname "$2")"
+  ( set +e
+    cd "$(dirname "$2")"
     f="$(basename "$2")"
     git log --pretty=format:'%H%n%an%n%ae%n%ai%n%at%n' -1 -- "$f"
     git log --pretty=format:'%H%n%an%n%ae%n%ai%n%at%n' --follow -- "$f" | tail -n 5
   ) | (
+    set +e
     read last_commit_id
     read last_commit_name
     read last_commit_mail
@@ -38,9 +40,9 @@ redo-ifchange "$2"
     cat <<EOF
 {
   "date_created":       $($JSESC --json <<<"$first_commit_date"),
-  "timestamp_created":  $first_commit_stamp,
+  "timestamp_created":  ${first_commit_stamp:-null},
   "date_modified":      $($JSESC --json <<<"$last_commit_date"),
-  "timestamp_modified": $last_commit_stamp,
+  "timestamp_modified": ${last_commit_stamp:-null},
   "creator":            $($JSESC --json <<<"$first_commit_name"),
   "creator_email":      $($JSESC --json <<<"$first_commit_mail"),
   "last_editor":        $($JSESC --json <<<"$last_commit_name"),
@@ -49,6 +51,13 @@ redo-ifchange "$2"
 EOF
 
   )
+  
+  echo "{}"
 
 ) | $JSONTOOL --merge >"$3"
+
+if ! [ -s "$3" ]; then
+  echo "Poscondition failed: empty ${2##*/}.meta.json file" >&2
+  exit 1
+fi
 

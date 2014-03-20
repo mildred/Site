@@ -4,6 +4,7 @@
     "jsesc": "*",
     "jsontool": "*",
     "js-yaml-cli": "*",
-    "jsdom": "*"
+    "jsdom": "*",
+    "execSync": "*"
   }
 }

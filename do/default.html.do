@@ -1,5 +1,4 @@
 
-JADE=../node_modules/jade/bin/jade.js
 JSESC=../node_modules/jsesc/bin/jsesc
 JSONTOOL=../node_modules/jsontool/lib/jsontool.js
 
@@ -12,12 +11,21 @@ if [ -z "$template" ]; then
 fi
 
 template="${2%/*}/$template"
-redo-ifchange "$template"
-redo-ifchange "$2.htm"
+redo-ifchange "$template.runfile"
 
-args="{ 'file': {
-  'meta': $(cat "$2.meta.json"),
-  'html': $($JSESC --json <"$2.htm")
-}}"
+template="$(dirname "$template")/$(cat "$template.runfile")"
 
-$JADE -O "$args" <"$template" >"$3"
+file="$( (cd "`dirname "$2"`"; echo "$PWD/`basename "$2"`") )"
+out="$( (cd "`dirname "$3"`"; echo "$PWD/`basename "$3"`") )"
+abstemplate="$( (cd "`dirname "$template"`"; echo "$PWD/`basename "$template"`") )"
+
+cd "`dirname "$abstemplate"`"
+
+relfile="$(python -c 'import sys, os; print os.path.relpath(sys.argv[1], sys.argv[2])' "$file" "$PWD")"
+
+# $PWD: template directory
+# $1: subject file (relative to $PWD)
+# $2: output file (unspecified if relative or absolute)
+
+"$abstemplate" "$abstemplate" "$relfile" "$out"
+
