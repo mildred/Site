@@ -9,13 +9,13 @@ generate(){
 
   redo-ifchange "$SRCDIR.srclist"
   
-  tr '\n' '\0' <"$SRCDIR.srclist" | xargs -0 -n 1 printf "%s.src\0" | xargs -0 redo-ifchange
+  tr '\n' '\0' <"$SRCDIR.srclist" | xargs -0 -n 1 printf "%s.src\0" | xargs -0 sh -c '"$0" "$@" || exit 255' redo-ifchange
   
   read_src_file(){
     local srcfile="$1"
     local d="${srcfile%/*}"
 
-    tr '\n' '\0' <"$srcfile" | xargs -0 -n 1 printf "%s/%s.src\0" "$d" | xargs -0 redo-ifchange
+    tr '\n' '\0' <"$srcfile" | xargs -0 -n 1 printf "%s/%s.src\0" "$d" | xargs -0 sh -c '"$0" "$@" || exit 255' redo-ifchange
     while read f2; do
       printf "%s/%s\n" "$d" "$f2"
       if [ "a$d/$f2.src" != "a$srcfile" ]; then
@@ -29,19 +29,20 @@ generate(){
       read_src_file "$f.src"
     done <"$SRCDIR.srclist")"
     
-  echo "$list" | tr '\n' '\0' | xargs -0 -n 1 printf "%s.dest\0" | xargs -0 redo-ifchange  
+  echo "$list" | tr '\n' '\0' | xargs -0 -n 1 printf "%s.dest\0" | xargs -0 sh -c '"$0" "$@" || exit 255' redo-ifchange  
 
   echo "$list" | while read f; do
     if [ -s "$f.dest" ]; then
       printf "%s\0" "$f.out"
     fi
-  done | xargs -0 redo-ifchange
+  done | xargs -0 sh -c '"$0" "$@" || exit 255' redo-ifchange
 
   echo "$list" | while read f; do
     fdir="${f%/*}"
     if [ -s "$f.dest" ]; then
-      outfile="$OUTDIR/${fdir#$SRCDIR}/$(cat $f.dest)"
+      outfile="$OUTDIR/${fdir#$SRCDIR}/$(cat "$f.dest")"
       mkdir -p "${outfile%/*}"
+      echo "${fdir#$SRCDIR}/$(cat "$f.dest")"
       cp --reflink -a "$f.out" "$outfile"
     fi
   done

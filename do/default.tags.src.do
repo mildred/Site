@@ -18,9 +18,7 @@ filelistdir="${filelist%/*}"
 filelist="${2%/*}/$relfilelist"
 
 template="$($JSONTOOL template <"$2.tags.meta.json")"
-if [ -z "$template" ]; then
-  template=index.jade
-fi
+: ${template:=template.jade}
 
 tagattr="$($JSONTOOL tags <"$2.tags.meta.json")"
 if [ -z "$tagattr" ]; then
@@ -29,7 +27,7 @@ fi
 
 redo-ifchange "$filelist"
 
-tr '\n' '\0' <"$filelist" | xargs -0 -n 1 printf "%s/%s.meta.json\0" "$srcdir/$filelistdir" | xargs -0 redo-ifchange
+tr '\n' '\0' <"$filelist" | xargs -0 -n 1 printf "%s/%s.meta.json\0" "$srcdir/$filelistdir" | xargs -0 sh -c '"$0" "$@" || exit 255' redo-ifchange
 
 tag_list="$(
   (
@@ -37,7 +35,7 @@ tag_list="$(
     sep=""
     while read f; do
       echo "$sep"
-      echo "{\"file\": $($JSESC --json <<<"$f"),"
+      echo "{\"file\": $(echo "$f" | $JSESC --json),"
       echo " \"meta\":"
       if [ -s "$srcdir/$filelistdir/$f.meta.json" ]; then
         cat "$srcdir/$filelistdir/$f.meta.json"
@@ -48,10 +46,12 @@ tag_list="$(
       sep=","
     done <"$filelist"
     echo "]"
-  ) | $JSONTOOL -a "(meta || {}).$tagattr" | $JSONTOOL -g -a | sort | uniq
+  ) | $JSONTOOL -a "meta.$tagattr" | $JSONTOOL -g -a | sort | uniq
 )"
 
 :>"$3"
+
+echo "$tag_list" >"$outdir/$basefile2.tags.taglist"
 
 echo "$tag_list" | while read tag; do
   [ -z "$tag" ] && continue

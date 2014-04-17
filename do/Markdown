@@ -818,7 +818,7 @@ sub _DoLists {
 				my $list_type = ($3 =~ m/$marker_ul/) ? "ul" : "ol";
 				# Turn double returns into triple returns, so that we can make a
 				# paragraph for the last item in a list, if necessary:
-				$list =~ s/\n{2,}/\n\n\n/g;
+				#$list =~ s/\n{2,}/\n\n\n/g;
 				my $result = _ProcessListItems($list, $marker_any);
 				$result = "<$list_type>\n" . $result . "</$list_type>\n";
 				$result;
@@ -833,7 +833,7 @@ sub _DoLists {
 				my $list_type = ($3 =~ m/$marker_ul/) ? "ul" : "ol";
 				# Turn double returns into triple returns, so that we can make a
 				# paragraph for the last item in a list, if necessary:
-				$list =~ s/\n{2,}/\n\n\n/g;
+				#$list =~ s/\n{2,}/\n\n\n/g;
 				my $result = _ProcessListItems($list, $marker_any);
 				$result = "<$list_type>\n" . $result . "</$list_type>\n";
 				$result;
@@ -938,7 +938,8 @@ sub _DoCodeBlocks {
 			$codeblock =~ s/\A\n+//; # trim leading newlines
 			$codeblock =~ s/\s+\z//; # trim trailing whitespace
 
-			$result = "\n\n<pre><code>" . $codeblock . "\n</code></pre>\n\n";
+$codeblock =~ s/\n/&#x000A;/g;
+			$result = "\n\n<pre><code>" . $codeblock . "&#x000A;</code></pre>\n\n";
 
 			$result;
 		}egmx;

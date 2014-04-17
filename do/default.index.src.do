@@ -12,90 +12,70 @@ basefile2="${2##*/}"
 redo-ifchange "$2.index.meta.json"
 
 template="$($JSONTOOL template <"$2.index.meta.json")"
-if [ -z "$template" ]; then
-  template=index.jade
-fi
-template="${2%/*}/$template"
+: ${template:=template.jade}
+template="$srcdir/$template"
+
+atomtemplate="$($JSONTOOL atomtemplate <"$2.index.meta.json")"
+: ${atomtemplate:=index.atom.jade}
 
 numitems="$($JSONTOOL numitems <"$2.index.meta.json")"
-if [ -z "$numitems" ]; then
-  numitems=10
-fi
+: ${numitems:=10}
 
-filter="$($JSONTOOL filter <"$2.index.meta.json")"
-if [ -z "$filter" ]; then
-  filter=true
-fi
+itemlistfile="$2.index.itemlist"
+redo-ifchange "$itemlistfile"
 
-filelist="$($JSONTOOL filelist <"$2.index.meta.json")"
-if [ -z "$filelist" ]; then
-  filelist=..srclist
-fi
-filelistdir="$(dirname "$filelist")"
-filelist="${2%/*}/$filelist"
-
-redo-ifchange "$filelist"
-
-#echo "redo $2.index" >&2
-
-list="$(
-  while read f; do
-    [ "a$2.index" = "a$filelistdir/$f" ] && continue
-    redo-ifchange "$srcdir/$filelistdir/$f.dest"
-    [ -s "$srcdir/$filelistdir/$f.dest" ] || continue
-    redo-dofile "$srcdir/$filelistdir/$f.htm" >/dev/null || continue
-    printf '%s\n' "$f"
-  done <"$filelist")"
-
-if [ -n "$list" ]; then
-  echo "$list" | tr '\n' '\0' | xargs -0 -n 1 printf "%s/%s.meta.json\0" "$srcdir/$filelistdir" | xargs -0 redo-ifchange
-fi
-
-sortable_list="$(
-  (
-    echo "["
-    sep=""
-    echo "$list" | while read f; do
-      echo "$sep"
-      echo "{\"file\": $($JSESC --json <<<"$f"),"
-      echo " \"meta\":"
-      if [ -s "$srcdir/$filelistdir/$f.meta.json" ]; then
-        cat "$srcdir/$filelistdir/$f.meta.json"
-      else
-        echo "{}"
-      fi
-      echo "}"
-      sep=","
-    done
-    echo "]"
-  ) | $JSONTOOL -C "$filter" | $JSONTOOL -a meta.timestamp_modified meta.timestamp_created file)"
-
-sorted_list_asc="$(echo "$sortable_list" | sort -n | cut -d' ' -f3-)"
-sorted_list_desc="$(echo "$sortable_list" | sort -n -r | cut -d' ' -f3-)"
+sorted_list_asc="$(sort -n <"$itemlistfile" | cut -d' ' -f3-)"
+sorted_list_desc="$(sort -n -r <"$itemlistfile" | cut -d' ' -f3-)"
 
 generate(){
   let srcdirlen=${#srcdir}+1
   echo "{"
-  echo "  \"pagenum\":  $([ -n "$1" ] && echo "$1" || echo null),"
-  echo "  \"template\": $($JSESC --json <<<"${template:$srcdirlen}"),"
-  echo "  \"metafile\": $($JSESC --json <<<"$basefile2.index.meta.json"),"
+  echo "  \"pagenum\":   $([ -n "$1" ] && echo "$1" || echo null),"
+  echo "  \"firstitem\": $([ -n "$2" ] && echo "$(($2-1))" || echo null),"
+  echo "  \"lastitem\":  $([ -n "$3" ] && echo "$(($3-1))" || echo null),"
+  echo "  \"template\":     $(echo "${template:$srcdirlen}"     | $JSESC --json),"
+  echo "  \"atomtemplate\": $(echo "${atomtemplate}"            | $JSESC --json),"
+  echo "  \"metafile\":     $(echo "$basefile2.index.meta.json" | $JSESC --json),"
+  echo "  \"atompage\":     $(echo "$basefile2.atom.xml"        | $JSESC --json),"
+  echo "  \"latestpage\":   $(echo "$basefile2.index"           | $JSESC --json),"
+  echo "  \"pages\": ["
+  local i=1
+  separator=""
+  while [ $i -le $numpages ]; do
+    printf "$separator%s" "$(echo "$basefile2.$i.index" | $JSESC --json)"
+    separator=",\n"
+    i=$((i+1))
+  done
+  printf "\n],"
   echo "  \"items\": ["
   separator=""
   while read f; do
     [ -z "$f" ] && continue
-    printf "$separator    %s" "$(echo "$filelistdir/$f" | $JSESC --json)"
+    printf "$separator    %s" "$(echo "$f" | $JSESC --json)"
     separator=",\n"
   done
   printf "\n  ]"
   printf "}"
 }
 
-echo "$sorted_list_desc" | head -n $numitems | generate >"$outdir/$basefile2.index.list"
+countitems=$(echo "$sorted_list_desc" | wc -l)
+numpages=$(($countitems/$numitems))
+if [ $(($countitems%$numitems)) -ne 0 ]; then
+  numpages=$(($numpages+1))
+fi
+
+echo "$sorted_list_desc" \
+  | head -n $numitems \
+  | generate "" $(($countitems-$numitems+1)) $countitems >"$outdir/$basefile2.index.list"
 echo "$basefile2.index" >>"$3"
+
+echo "$basefile2.atom.xml" >>"$3"
+$JSONTOOL -E "this.template = $(echo "${atomtemplate}" | $JSESC --json)" <"$outdir/$basefile2.index.list" >"$outdir/$basefile2.atom.xml.list"
+$JSONTOOL -E "this.template = $(echo "${atomtemplate}" | $JSESC --json)" <"$2.index.meta.json" >"$outdir/$basefile2.atom.xml.meta.json"
 
 let i=1 j=$numitems pagenum=1
 while list="$(echo "$sorted_list_asc" | sed -n "${i},${j}p")"; [ -n "$list" ]; do
-  echo "$list" | generate $pagenum >"$outdir/$basefile2.$pagenum.index.list"
+  echo "$list" | generate $pagenum $i $(($i+$(echo "$list" | wc -l)-1)) >"$outdir/$basefile2.$pagenum.index.list"
   cp --reflink "$2.index.meta.json" "$outdir/$basefile2.$pagenum.index.meta.json"
   : >"$outdir/$basefile2.$pagenum.index.src"
   echo "$basefile2.$pagenum.index" >>"$3"
